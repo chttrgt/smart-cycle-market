@@ -12,8 +12,12 @@
   "license": "ISC",
   "description": "This is the api built for smart-cycle-market app",
   "dependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/nodemailer": "^6.4.17",
+    "bcrypt": "^5.1.1",
     "express": "^4.21.2",
     "mongoose": "^8.9.5",
+    "nodemailer": "^6.9.16",
     "tsc-alias": "^1.8.10",
     "tsconfig-paths": "^4.2.0"
   },

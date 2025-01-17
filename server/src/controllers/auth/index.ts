@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import UserModel from "src/models/user";
 import AuthVerificationTokenModel from "src/models/authVerificationToken";
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 //#region SIGN UP USER
 const createNewUser: RequestHandler = async (req, res) => {
@@ -42,7 +43,26 @@ const createNewUser: RequestHandler = async (req, res) => {
   //send verification link with token to register email
   const link = `http://localhost:8000/api/auth/verify?id=${newUser._id}&token=${token}`;
 
-  res.status(201).json({ message: "User created successfully!", link: link });
+  const transport = nodemailer.createTransport({
+    host: "smtp.example.com",
+    port: 333,
+    auth: {
+      user: "ct.example@mail.com",
+      pass: "xxxxxxxxxxxxxx",
+    },
+  });
+
+  await transport.sendMail({
+    from: "ct.example@mail.com",
+    to: newUser.email,
+    subject: "Please verify your account",
+    html: `<h1>Please click <a href="${link}"><strong>here</strong></a> to verify your account</h1>`,
+  });
+
+  res.status(201).json({
+    message: "User created successfully! Please check your inbox!",
+    link: link,
+  });
 };
 //#endregion
 
