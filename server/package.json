@@ -13,6 +13,7 @@
   "description": "This is the api built for smart-cycle-market app",
   "dependencies": {
     "express": "^4.21.2",
+    "mongoose": "^8.9.5",
     "tsc-alias": "^1.8.10",
     "tsconfig-paths": "^4.2.0"
   },

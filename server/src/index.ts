@@ -1,3 +1,4 @@
+import "src/db";
 import express from "express";
 import mainRouter from "./routes";
 
