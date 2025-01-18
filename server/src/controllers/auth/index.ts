@@ -111,7 +111,7 @@ const signIn: RequestHandler = async (req, res) => {
     expiresIn: "15m",
   });
   const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, {
-    expiresIn: "7d",
+    expiresIn: "1d",
   });
 
   if (!user.tokens) user.tokens = [refreshToken];
@@ -207,7 +207,7 @@ const grantAccessToken: RequestHandler = async (req, res) => {
   const newRefreshToken = jwt.sign(
     { id: user._id },
     process.env.JWT_SECRET_KEY,
-    { expiresIn: "7d" }
+    { expiresIn: "1d" }
   );
 
   const filteredTokens = user.tokens.filter((token) => token !== refreshToken);
@@ -224,10 +224,33 @@ const grantAccessToken: RequestHandler = async (req, res) => {
 };
 //#endregion
 
+//#region SIGN OUT
+
+const signOut: RequestHandler = async (req, res) => {
+  const { refreshToken } = req.body;
+  const user = await UserModel.findOne({
+    _id: req.user.id,
+    tokens: refreshToken,
+  });
+
+  if (!user) {
+    sendErrorRes(res, "Unauthorized request, user not found!", 403);
+    return;
+  }
+
+  const filteredTokens = user.tokens.filter((token) => token !== refreshToken);
+  user.tokens = filteredTokens;
+  await user.save();
+
+};
+
+//#endregion
+
 export {
   createNewUser,
   verifyEmail,
   signIn,
+  signOut,
   getProfile,
   generateVerificationLink,
   grantAccessToken,
