@@ -1,5 +1,6 @@
+import "express-async-errors";
 import "src/db";
-import express from "express";
+import express, { ErrorRequestHandler } from "express";
 import mainRouter from "./routes";
 
 const app = express();
@@ -10,6 +11,11 @@ app.use(express.urlencoded({ extended: true }));
 
 // API Requests
 app.use("/api", mainRouter);
+
+// Error Handler Middleware
+app.use(function (err, req, res, next) {
+  res.status(500).json({ message: err.message });
+} as ErrorRequestHandler);
 
 // Start the server
 app.listen(8000, () => {

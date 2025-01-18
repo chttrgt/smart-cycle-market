@@ -3,6 +3,7 @@ import UserModel from "src/models/user";
 import AuthVerificationTokenModel from "src/models/authVerificationToken";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import { sendErrorRes } from "src/utils/helper";
 
 //#region SIGN UP USER
 const createNewUser: RequestHandler = async (req, res) => {
@@ -11,25 +12,25 @@ const createNewUser: RequestHandler = async (req, res) => {
 
   // Validate if the data is ok or not & send error if not
   if (!name) {
-    res.status(422).json({ message: "Name is required!" });
+    sendErrorRes(res, "Name is required!", 422);
     return;
   }
   if (!email) {
-    res.status(422).json({ message: "Email is required!" });
+    sendErrorRes(res, "Email is required!", 422);
     return;
   }
   if (!password) {
-    res.status(422).json({ message: "Password is required!" });
+    sendErrorRes(res, "Password is required!", 422);
     return;
   }
 
   /*
-    Check if we already have account with same user.
-    Send error if yes otherwise create new account and save user inside DB.
-  */
+     Check if we already have account with same user.
+     Send error if yes otherwise create new account and save user inside DB.
+   */
   const existingUser = await UserModel.findOne({ email });
   if (existingUser) {
-    res.status(401).json({ message: "User already exists!" });
+    sendErrorRes(res, "User already exists!", 401);
     return;
   }
 

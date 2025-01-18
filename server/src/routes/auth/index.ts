@@ -1,9 +1,11 @@
 import express from "express";
 import { createNewUser } from "controllers/auth";
+import validator from "src/middlewares/validator";
+import { newUserSchema } from "src/utils/validationSchema";
 
 const router = express.Router();
 
-router.post("/sign-up", createNewUser);
+router.post("/sign-up", validator(newUserSchema), createNewUser);
 router.post("/sign-in", (req, res) => {});
 router.post("/verify", (req, res) => {});
 router.post("/refresh-token", (req, res) => {});
