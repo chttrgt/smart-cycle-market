@@ -27,6 +27,26 @@ const sendVerificationMail = async (email: string, link: string) => {
   });
 };
 
+const sendPasswordResetLinkMail = async (email: string, link: string) => {
+  await transport.sendMail({
+    from: SMTP_USER,
+    to: email,
+    subject: "Please reset your password",
+    html: `<h1>Please click <a href="${link}"><strong>here</strong></a> to reset your password</h1>`,
+  });
+};
+
+const sendPasswordUpdateMail = async (email: string) => {
+  await transport.sendMail({
+    from: SMTP_USER,
+    to: email,
+    subject: "Your password is updated",
+    html: `<h1>Your password is updated, you can now use your new password.</h1>`,
+  });
+};
+
 export const mail = {
   sendVerificationMail,
+  sendPasswordResetLinkMail,
+  sendPasswordUpdateMail,
 };

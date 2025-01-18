@@ -1,15 +1,18 @@
 import { RequestHandler } from "express";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import UserModel from "src/models/user";
 import AuthVerificationTokenModel from "src/models/authVerificationToken";
-import crypto from "crypto";
+import PasswordResetTokenModel from "src/models/passwordResetToken";
 import { getEnvVariablesWithDefaults, sendErrorRes } from "src/utils/helper";
-import jwt from "jsonwebtoken";
 import { mail } from "src/utils/mail";
 
-const { JWT_SECRET_KEY, VERIFICATION_LINK } = getEnvVariablesWithDefaults([
-  { name: "JWT_SECRET_KEY" },
-  { name: "VERIFICATION_LINK" },
-]);
+const { JWT_SECRET_KEY, VERIFICATION_LINK, PASSWORD_RESET_LINK } =
+  getEnvVariablesWithDefaults([
+    { name: "JWT_SECRET_KEY" },
+    { name: "VERIFICATION_LINK" },
+    { name: "PASSWORD_RESET_LINK" },
+  ]);
 
 //#region SIGN UP USER
 const createNewUser: RequestHandler = async (req, res) => {
@@ -141,7 +144,7 @@ const generateVerificationLink: RequestHandler = async (req, res) => {
 
   const token = crypto.randomBytes(36).toString("hex");
 
-  const link = `${process.env.VERIFICATION_LINK}?id=${id}&token=${token}`;
+  const link = `${VERIFICATION_LINK}?id=${id}&token=${token}`;
 
   await AuthVerificationTokenModel.findOneAndDelete({ owner: id });
 
@@ -227,6 +230,70 @@ const signOut: RequestHandler = async (req, res) => {
 
 //#endregion
 
+//#region FORGET PASSWORD
+const generateForgetPassLink: RequestHandler = async (req, res) => {
+  const { email } = req.body;
+
+  const user = await UserModel.findOne({ email });
+
+  if (!user) {
+    sendErrorRes(res, "User not found!", 404);
+    return;
+  }
+
+  // Remove token if already exists
+  await PasswordResetTokenModel.findOneAndDelete({ owner: user._id });
+
+  // Create new token
+  const token = crypto.randomBytes(36).toString("hex");
+  await PasswordResetTokenModel.create({ owner: user._id, token });
+
+  // Send the link to user's email
+  const passResetLink = `${PASSWORD_RESET_LINK}?id=${user._id}&token=${token}`;
+  await mail.sendPasswordResetLinkMail(user.email, passResetLink);
+
+  // Send response
+  res.status(200).json({
+    message: "Please check your inbox!",
+  });
+};
+//#endregion
+
+//#region VALIDATE PASSWORD RESET TOKEN
+
+const grantValid: RequestHandler = async (req, res) => {
+  res.json({ valid: true });
+};
+
+//#endregion
+
+//#region RESET PASSWORD
+const updatePassword: RequestHandler = async (req, res) => {
+  const { id, password } = req.body;
+  const user = await UserModel.findById(id);
+  if (!user) {
+    sendErrorRes(res, "Unauthorized access!", 403);
+    return;
+  }
+
+  const matched = await user.comparePassword(password);
+  if (matched) {
+    sendErrorRes(res, "The new password can't be same as old password!", 422);
+    return;
+  }
+
+  user.password = password;
+  await user.save();
+
+  await PasswordResetTokenModel.findOneAndDelete({ owner: user._id });
+  await mail.sendPasswordUpdateMail(user.email);
+
+  res.status(200).json({
+    message: "Password updated successfully!",
+  });
+};
+//#endregion
+
 export {
   createNewUser,
   verifyEmail,
@@ -235,4 +302,7 @@ export {
   getProfile,
   generateVerificationLink,
   grantAccessToken,
+  generateForgetPassLink,
+  grantValid,
+  updatePassword,
 };
