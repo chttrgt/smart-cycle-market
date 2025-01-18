@@ -43,7 +43,7 @@ const createNewUser: RequestHandler = async (req, res) => {
   await AuthVerificationTokenModel.create({ owner: newUser._id, token });
 
   //send verification link with token to register email
-  const link = `http://localhost:8000/api/auth/verify?id=${newUser._id}&token=${token}`;
+  const link = `http://localhost:8000/verify.html?id=${newUser._id}&token=${token}`;
 
   const transport = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
