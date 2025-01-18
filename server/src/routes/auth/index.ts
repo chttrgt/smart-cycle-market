@@ -4,6 +4,7 @@ import {
   verifyEmail,
   signIn,
   getProfile,
+  generateVerificationLink,
 } from "controllers/auth";
 import validator from "src/middlewares/validator";
 import { newUserSchema, verifyTokenSchema } from "src/utils/validationSchema";
@@ -15,7 +16,7 @@ router.post("/sign-up", validator(newUserSchema), createNewUser);
 router.post("/sign-in", signIn);
 router.post("/verify", validator(verifyTokenSchema), verifyEmail);
 router.post("/refresh-token", (req, res) => {});
-router.post("/verify-token", (req, res) => {});
+router.get("/verify-token", isAuth, generateVerificationLink);
 router.post("/verify-pass-reset-token", (req, res) => {});
 router.post("/sign-out", (req, res) => {});
 router.post("/forget-pass", (req, res) => {});

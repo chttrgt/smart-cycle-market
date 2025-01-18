@@ -2,9 +2,9 @@ import { RequestHandler } from "express";
 import UserModel from "src/models/user";
 import AuthVerificationTokenModel from "src/models/authVerificationToken";
 import crypto from "crypto";
-import nodemailer, { TransportOptions } from "nodemailer";
 import { sendErrorRes } from "src/utils/helper";
 import jwt from "jsonwebtoken";
+import { mail } from "src/utils/mail";
 
 //#region SIGN UP USER
 const createNewUser: RequestHandler = async (req, res) => {
@@ -45,21 +45,7 @@ const createNewUser: RequestHandler = async (req, res) => {
   //send verification link with token to register email
   const link = `http://localhost:8000/verify.html?id=${newUser._id}&token=${token}`;
 
-  const transport = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  } as TransportOptions);
-
-  await transport.sendMail({
-    from: process.env.SMTP_USER,
-    to: newUser.email,
-    subject: "Please verify your account",
-    html: `<h1>Please click <a href="${link}"><strong>here</strong></a> to verify your account</h1>`,
-  });
+  await mail.sendVerificationMail(newUser.email, link);
 
   res.status(201).json({
     message: "User created successfully! Please check your inbox!",
@@ -153,4 +139,30 @@ const getProfile: RequestHandler = async (req, res) => {
 };
 //#endregion
 
-export { createNewUser, verifyEmail, signIn, getProfile };
+//#region RE-GENERATE VERIFICATION LINK
+const generateVerificationLink: RequestHandler = async (req, res) => {
+  const { id, email } = req.user;
+
+  const token = crypto.randomBytes(36).toString("hex");
+
+  const link = `http://localhost:8000/verify.html?id=${id}&token=${token}`;
+
+  await AuthVerificationTokenModel.findOneAndDelete({ owner: id });
+
+  await AuthVerificationTokenModel.create({ owner: id, token });
+
+  await mail.sendVerificationMail(email, link);
+
+  res.status(200).json({
+    message: "Please check your inbox!",
+  });
+};
+//#endregion
+
+export {
+  createNewUser,
+  verifyEmail,
+  signIn,
+  getProfile,
+  generateVerificationLink,
+};

@@ -13,7 +13,7 @@ interface UserProfile {
 declare global {
   namespace Express {
     interface Request {
-      user?: UserProfile;
+      user: UserProfile;
     }
   }
 }
