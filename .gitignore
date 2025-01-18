@@ -16,6 +16,9 @@ logs/
 .env
 .env.*
 
+# Environment variables Types
+env.d.ts
+
 # React Native specific
 .expo/
 .expo-shared/

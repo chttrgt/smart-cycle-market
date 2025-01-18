@@ -1,17 +1,26 @@
 import nodemailer, { TransportOptions } from "nodemailer";
+import { getEnvVariablesWithDefaults } from "./helper";
+
+const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } =
+  getEnvVariablesWithDefaults([
+    { name: "SMTP_HOST" },
+    { name: "SMTP_PORT" },
+    { name: "SMTP_USER" },
+    { name: "SMTP_PASS" },
+  ]);
 
 const transport = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
+  host: SMTP_HOST,
+  port: SMTP_PORT,
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    user: SMTP_USER,
+    pass: SMTP_PASS,
   },
 } as TransportOptions);
 
 const sendVerificationMail = async (email: string, link: string) => {
   await transport.sendMail({
-    from: process.env.SMTP_USER,
+    from: SMTP_USER,
     to: email,
     subject: "Please verify your account",
     html: `<h1>Please click <a href="${link}"><strong>here</strong></a> to verify your account</h1>`,

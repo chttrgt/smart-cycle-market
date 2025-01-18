@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import { sendErrorRes } from "src/utils/helper";
+import { getEnvVariablesWithDefaults, sendErrorRes } from "src/utils/helper";
 import jwt, { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 import UserModel from "src/models/user";
 
@@ -18,6 +18,10 @@ declare global {
   }
 }
 
+const { JWT_SECRET_KEY } = getEnvVariablesWithDefaults([
+  { name: "JWT_SECRET_KEY" },
+]);
+
 export const isAuth: RequestHandler = async (req, res, next) => {
   try {
     const authToken = req.headers.authorization;
@@ -28,15 +32,8 @@ export const isAuth: RequestHandler = async (req, res, next) => {
 
     // Check if the token is valid or not
     const token = authToken.split("Bearer ")[1];
-    if (!process.env.JWT_SECRET_KEY) {
-      sendErrorRes(
-        res,
-        "JWT_SECRET_KEY is not defined in the environment variables!",
-        400
-      );
-      return;
-    }
-    const payload = jwt.verify(token, process.env.JWT_SECRET_KEY) as {
+
+    const payload = jwt.verify(token, JWT_SECRET_KEY) as {
       id: string;
     };
 

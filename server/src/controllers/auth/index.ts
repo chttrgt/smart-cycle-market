@@ -2,9 +2,14 @@ import { RequestHandler } from "express";
 import UserModel from "src/models/user";
 import AuthVerificationTokenModel from "src/models/authVerificationToken";
 import crypto from "crypto";
-import { sendErrorRes } from "src/utils/helper";
+import { getEnvVariablesWithDefaults, sendErrorRes } from "src/utils/helper";
 import jwt from "jsonwebtoken";
 import { mail } from "src/utils/mail";
+
+const { JWT_SECRET_KEY, VERIFICATION_LINK } = getEnvVariablesWithDefaults([
+  { name: "JWT_SECRET_KEY" },
+  { name: "VERIFICATION_LINK" },
+]);
 
 //#region SIGN UP USER
 const createNewUser: RequestHandler = async (req, res) => {
@@ -43,7 +48,7 @@ const createNewUser: RequestHandler = async (req, res) => {
   await AuthVerificationTokenModel.create({ owner: newUser._id, token });
 
   //send verification link with token to register email
-  const link = `http://localhost:8000/verify.html?id=${newUser._id}&token=${token}`;
+  const link = `${VERIFICATION_LINK}?id=${newUser._id}&token=${token}`;
 
   await mail.sendVerificationMail(newUser.email, link);
 
@@ -98,19 +103,10 @@ const signIn: RequestHandler = async (req, res) => {
   }
   // Generate JWT token (Access Token & Refresh Token)
 
-  if (!process.env.JWT_SECRET_KEY) {
-    sendErrorRes(
-      res,
-      "JWT_SECRET_KEY is not defined in the environment variables!",
-      400
-    );
-    return;
-  }
-
-  const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, {
+  const accessToken = jwt.sign({ id: user._id }, JWT_SECRET_KEY, {
     expiresIn: "15m",
   });
-  const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, {
+  const refreshToken = jwt.sign({ id: user._id }, JWT_SECRET_KEY, {
     expiresIn: "1d",
   });
 
@@ -145,7 +141,7 @@ const generateVerificationLink: RequestHandler = async (req, res) => {
 
   const token = crypto.randomBytes(36).toString("hex");
 
-  const link = `http://localhost:8000/verify.html?id=${id}&token=${token}`;
+  const link = `${process.env.VERIFICATION_LINK}?id=${id}&token=${token}`;
 
   await AuthVerificationTokenModel.findOneAndDelete({ owner: id });
 
@@ -167,15 +163,7 @@ const grantAccessToken: RequestHandler = async (req, res) => {
     return;
   }
 
-  if (!process.env.JWT_SECRET_KEY) {
-    sendErrorRes(
-      res,
-      "JWT_SECRET_KEY is not defined in the environment variables!",
-      400
-    );
-    return;
-  }
-  const payload = jwt.verify(refreshToken, process.env.JWT_SECRET_KEY) as {
+  const payload = jwt.verify(refreshToken, JWT_SECRET_KEY) as {
     id: string;
   };
 
@@ -196,19 +184,13 @@ const grantAccessToken: RequestHandler = async (req, res) => {
     return;
   }
 
-  const newAccessToken = jwt.sign(
-    { id: user._id },
-    process.env.JWT_SECRET_KEY,
-    {
-      expiresIn: "15m",
-    }
-  );
+  const newAccessToken = jwt.sign({ id: user._id }, JWT_SECRET_KEY, {
+    expiresIn: "15m",
+  });
 
-  const newRefreshToken = jwt.sign(
-    { id: user._id },
-    process.env.JWT_SECRET_KEY,
-    { expiresIn: "1d" }
-  );
+  const newRefreshToken = jwt.sign({ id: user._id }, JWT_SECRET_KEY, {
+    expiresIn: "1d",
+  });
 
   const filteredTokens = user.tokens.filter((token) => token !== refreshToken);
   user.tokens = [...filteredTokens, newRefreshToken];
@@ -241,7 +223,6 @@ const signOut: RequestHandler = async (req, res) => {
   const filteredTokens = user.tokens.filter((token) => token !== refreshToken);
   user.tokens = filteredTokens;
   await user.save();
-
 };
 
 //#endregion
