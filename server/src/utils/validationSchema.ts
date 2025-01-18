@@ -1,3 +1,4 @@
+import { isValidObjectId } from "mongoose";
 import * as yup from "yup";
 
 const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
@@ -43,3 +44,14 @@ export const newUserSchema = yup.object({
     \S ile boşluk dışındaki tüm karakterlere izin verir.
 
 */
+
+export const verifyTokenSchema = yup.object({
+  id: yup.string().test({
+    name: "valid-id",
+    message: "Invalid id format!",
+    test: (value) => {
+      return isValidObjectId(value);
+    },
+  }),
+  token: yup.string().required("Token is required!"),
+});
