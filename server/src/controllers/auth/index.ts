@@ -4,6 +4,7 @@ import AuthVerificationTokenModel from "src/models/authVerificationToken";
 import crypto from "crypto";
 import nodemailer, { TransportOptions } from "nodemailer";
 import { sendErrorRes } from "src/utils/helper";
+import jwt from "jsonwebtoken";
 
 //#region SIGN UP USER
 const createNewUser: RequestHandler = async (req, res) => {
@@ -52,7 +53,7 @@ const createNewUser: RequestHandler = async (req, res) => {
       pass: process.env.SMTP_PASS,
     },
   } as TransportOptions);
- 
+
   await transport.sendMail({
     from: process.env.SMTP_USER,
     to: newUser.email,
@@ -93,4 +94,63 @@ const verifyEmail: RequestHandler = async (req, res) => {
 };
 //#endregion
 
-export { createNewUser, verifyEmail };
+//#region SIGN IN
+const signIn: RequestHandler = async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await UserModel.findOne({ email });
+
+  if (!user) {
+    sendErrorRes(res, "User not found!", 404);
+    return;
+  }
+
+  const isMatched = await user.comparePassword(password);
+  if (!isMatched) {
+    sendErrorRes(res, "Invalid credentials!", 401);
+    return;
+  }
+  // Generate JWT token (Access Token & Refresh Token)
+
+  if (!process.env.JWT_SECRET_KEY) {
+    sendErrorRes(
+      res,
+      "JWT_SECRET_KEY is not defined in the environment variables!",
+      400
+    );
+    return;
+  }
+
+  const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, {
+    expiresIn: "15m",
+  });
+  const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, {
+    expiresIn: "7d",
+  });
+
+  if (!user.tokens) user.tokens = [refreshToken];
+  else user.tokens.push(refreshToken);
+
+  await user.save();
+
+  res.status(200).json({
+    message: "Logged in successfully!",
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    verified: user.verified,
+    tokens: {
+      access: accessToken,
+      refresh: refreshToken,
+    },
+  });
+};
+//#endregion
+
+//#region GET PROFILE
+const getProfile: RequestHandler = async (req, res) => {
+  res.status(200).json({ ...req.user });
+};
+//#endregion
+
+export { createNewUser, verifyEmail, signIn, getProfile };
