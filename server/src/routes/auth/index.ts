@@ -5,6 +5,7 @@ import {
   signIn,
   getProfile,
   generateVerificationLink,
+  grantAccessToken,
 } from "controllers/auth";
 import validator from "src/middlewares/validator";
 import { newUserSchema, verifyTokenSchema } from "src/utils/validationSchema";
@@ -15,7 +16,7 @@ const router = express.Router();
 router.post("/sign-up", validator(newUserSchema), createNewUser);
 router.post("/sign-in", signIn);
 router.post("/verify", validator(verifyTokenSchema), verifyEmail);
-router.post("/refresh-token", (req, res) => {});
+router.post("/refresh-token", grantAccessToken);
 router.get("/verify-token", isAuth, generateVerificationLink);
 router.post("/verify-pass-reset-token", (req, res) => {});
 router.post("/sign-out", (req, res) => {});

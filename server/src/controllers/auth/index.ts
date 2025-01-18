@@ -159,10 +159,76 @@ const generateVerificationLink: RequestHandler = async (req, res) => {
 };
 //#endregion
 
+//#region RERESH TOKEN (GRANT NEW ACCESS TOKEN)
+const grantAccessToken: RequestHandler = async (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    sendErrorRes(res, "Unauthorized request!", 403);
+    return;
+  }
+
+  if (!process.env.JWT_SECRET_KEY) {
+    sendErrorRes(
+      res,
+      "JWT_SECRET_KEY is not defined in the environment variables!",
+      400
+    );
+    return;
+  }
+  const payload = jwt.verify(refreshToken, process.env.JWT_SECRET_KEY) as {
+    id: string;
+  };
+
+  if (!payload.id) {
+    sendErrorRes(res, "Unauthorized request!", 401);
+    return;
+  }
+
+  const user = await UserModel.findOne({
+    _id: payload.id,
+    tokens: refreshToken,
+  });
+
+  if (!user) {
+    // user is compromised, remove all the previous tokens
+    await UserModel.findByIdAndUpdate(payload.id, { tokens: [] });
+    sendErrorRes(res, "Unauthorized request!", 403);
+    return;
+  }
+
+  const newAccessToken = jwt.sign(
+    { id: user._id },
+    process.env.JWT_SECRET_KEY,
+    {
+      expiresIn: "15m",
+    }
+  );
+
+  const newRefreshToken = jwt.sign(
+    { id: user._id },
+    process.env.JWT_SECRET_KEY,
+    { expiresIn: "7d" }
+  );
+
+  const filteredTokens = user.tokens.filter((token) => token !== refreshToken);
+  user.tokens = [...filteredTokens, newRefreshToken];
+  await user.save();
+
+  res.status(200).json({
+    message: "New access token generated successfully!",
+    tokens: {
+      access: newAccessToken,
+      refresh: newRefreshToken,
+    },
+  });
+};
+//#endregion
+
 export {
   createNewUser,
   verifyEmail,
   signIn,
   getProfile,
   generateVerificationLink,
+  grantAccessToken,
 };
