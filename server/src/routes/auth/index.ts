@@ -10,6 +10,7 @@ import {
   generateForgetPassLink,
   grantValid,
   updatePassword,
+  updateProfile,
 } from "controllers/auth";
 import validator from "src/middlewares/validator";
 import {
@@ -41,7 +42,7 @@ router.post(
   updatePassword
 );
 router.post("/update-avatar", (req, res) => {});
-router.post("/update-profile", (req, res) => {});
+router.patch("/update-profile", isAuth, updateProfile);
 router.get("/profile", isAuth, getProfile);
 router.get("/profile/:id", (req, res) => {});
 

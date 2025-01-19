@@ -294,6 +294,26 @@ const updatePassword: RequestHandler = async (req, res) => {
 };
 //#endregion
 
+//#region UPDATE PROFILE
+const updateProfile: RequestHandler = async (req, res) => {
+  const { name } = req.body;
+  if (typeof name !== "string" || name.trim().length < 3) {
+    sendErrorRes(res, "Invalid name!", 422);
+    return;
+  }
+
+  await UserModel.findByIdAndUpdate(req.user.id, { name });
+
+  res.json({
+    message: "Profile updated successfully!",
+    profile: {
+      ...req.user,
+      name,
+    },
+  });
+};
+//#endregion
+
 export {
   createNewUser,
   verifyEmail,
@@ -305,4 +325,5 @@ export {
   generateForgetPassLink,
   grantValid,
   updatePassword,
+  updateProfile,
 };
