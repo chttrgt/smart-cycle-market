@@ -5,12 +5,14 @@ import {
   signIn,
   signOut,
   getProfile,
+  sendPublicProfile,
   generateVerificationLink,
   grantAccessToken,
   generateForgetPassLink,
   grantValid,
   updatePassword,
   updateProfile,
+  updateAvatar,
 } from "controllers/auth";
 import validator from "src/middlewares/validator";
 import {
@@ -19,6 +21,7 @@ import {
   verifyTokenSchema,
 } from "src/utils/validationSchema";
 import { isAuth, isValidPassResetToken } from "src/middlewares/auth";
+import fileParser from "src/middlewares/fileParser";
 
 const router = express.Router();
 
@@ -41,9 +44,9 @@ router.post(
   isValidPassResetToken,
   updatePassword
 );
-router.post("/update-avatar", (req, res) => {});
+router.patch("/update-avatar", isAuth, fileParser, updateAvatar);
 router.patch("/update-profile", isAuth, updateProfile);
 router.get("/profile", isAuth, getProfile);
-router.get("/profile/:id", (req, res) => {});
+router.get("/profile/:id", isAuth, sendPublicProfile);
 
 export default router;
