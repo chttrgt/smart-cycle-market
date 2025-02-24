@@ -6,8 +6,8 @@ import AuthVerificationTokenModel from "src/models/authVerificationToken";
 import PasswordResetTokenModel from "src/models/passwordResetToken";
 import { getEnvVariablesWithDefaults, sendErrorRes } from "src/utils/helper";
 import { mail } from "src/utils/mail";
-import { v2 as cloudinary } from "cloudinary";
 import { isValidObjectId } from "mongoose";
+import cloudUploader from "src/cloud";
 
 const { JWT_SECRET_KEY, VERIFICATION_LINK, PASSWORD_RESET_LINK } =
   getEnvVariablesWithDefaults([
@@ -15,17 +15,6 @@ const { JWT_SECRET_KEY, VERIFICATION_LINK, PASSWORD_RESET_LINK } =
     { name: "VERIFICATION_LINK" },
     { name: "PASSWORD_RESET_LINK" },
   ]);
-
-const CLOUD_NAME = process.env.CLOUD_NAME;
-const CLOUD_KEY = process.env.CLOUD_KEY;
-const CLOUD_SECRET = process.env.CLOUD_SECRET;
-
-cloudinary.config({
-  cloud_name: CLOUD_NAME,
-  api_key: CLOUD_KEY,
-  api_secret: CLOUD_SECRET,
-  secure: true,
-});
 
 //#region SIGN UP USER
 const createNewUser: RequestHandler = async (req, res) => {
@@ -344,10 +333,10 @@ const updateAvatar: RequestHandler = async (req, res) => {
   }
 
   if (user.avatar?.id) {
-    await cloudinary.uploader.destroy(user.avatar.id);
+    await cloudUploader.destroy(user.avatar.id);
   }
 
-  const { secure_url: url, public_id: id } = await cloudinary.uploader.upload(
+  const { secure_url: url, public_id: id } = await cloudUploader.upload(
     avatar.filepath,
     {
       width: 300,
