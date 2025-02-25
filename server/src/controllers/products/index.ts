@@ -101,7 +101,8 @@ const UpdateProduct: RequestHandler = async (req, res) => {
   const { images } = req.files;
   const isMultipleImages = Array.isArray(images);
   if (isMultipleImages) {
-    if (product.images.length + images.length > 5) {
+    const oldImages = product?.images?.length || 0;
+    if (oldImages + images.length > 5) {
       return sendErrorRes(res, "You can upload a maximum of 5 images", 422);
     }
   }
@@ -129,11 +130,14 @@ const UpdateProduct: RequestHandler = async (req, res) => {
       return { url: secure_url, id: public_id };
     });
 
-    product.images.push(...newImages);
+    if (product.images) product.images.push(...newImages);
+    else product.images = newImages;
   } else {
     if (images) {
       const { secure_url, public_id } = await uploadImage(images.filepath);
-      product.images.push({ url: secure_url, id: public_id });
+      if (product.images)
+        product.images.push({ url: secure_url, id: public_id });
+      else product.images = [{ url: secure_url, id: public_id }];
     }
   }
 
@@ -142,7 +146,7 @@ const UpdateProduct: RequestHandler = async (req, res) => {
 };
 //#endregion
 
-//# region DELETE PRODUCT
+//#region DELETE PRODUCT
 const DeleteProduct: RequestHandler = async (req, res) => {
   const productId = req.params.id;
   if (!isValidObjectId(productId))
@@ -155,7 +159,7 @@ const DeleteProduct: RequestHandler = async (req, res) => {
 
   if (!product) return sendErrorRes(res, "Product not found", 404);
 
-  const images = product.images;
+  const images = product.images || [];
   if (images.length > 0) {
     const publicIds = images.map((img) => img.id);
     await cloudApi.delete_resources(publicIds);
@@ -165,4 +169,36 @@ const DeleteProduct: RequestHandler = async (req, res) => {
 };
 //#endregion
 
-export { AddNewProduct, UpdateProduct, DeleteProduct };
+//#region DELETE PRODUCT IMAGE
+const DeleteProductImage: RequestHandler = async (req, res) => {
+  const { proId, imgId } = req.params;
+  if (!isValidObjectId(proId) || !isValidObjectId(imgId))
+    return sendErrorRes(res, "Invalid product or image id", 422);
+
+  const product = await ProductModel.findOneAndUpdate(
+    {
+      _id: proId,
+      owner: req.user.id,
+    },
+    {
+      $pull: { images: { id: imgId } },
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!product) return sendErrorRes(res, "Product not found", 404);
+
+  if (product.thumbnail?.includes(imgId)) {
+    const images = product.images;
+    if (images) product.thumbnail = images[0].url;
+    await product.save();
+  }
+
+  await cloudUploader.destroy(imgId);
+  res.json({ message: "Image deleted" });
+};
+//#endregion
+
+export { AddNewProduct, UpdateProduct, DeleteProduct, DeleteProductImage };

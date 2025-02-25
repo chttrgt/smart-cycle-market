@@ -3,6 +3,7 @@ import {
   AddNewProduct,
   DeleteProduct,
   UpdateProduct,
+  DeleteProductImage,
 } from "src/controllers/products";
 import { isAuth } from "src/middlewares/auth";
 import fileParser from "src/middlewares/fileParser";
@@ -28,5 +29,6 @@ productRouter.patch(
 );
 
 productRouter.delete("/:id", isAuth, DeleteProduct);
+productRouter.delete("/image/:proId/:imgId", isAuth, DeleteProductImage);
 
 export default productRouter;
