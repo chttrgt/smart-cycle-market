@@ -1,7 +1,7 @@
 import { UploadApiResponse } from "cloudinary";
 import { RequestHandler } from "express";
 import { isValidObjectId } from "mongoose";
-import cloudUploader from "src/cloud";
+import cloudUploader, { cloudApi } from "src/cloud";
 import ProductModel from "src/models/product";
 import { sendErrorRes } from "src/utils/helper";
 
@@ -13,6 +13,7 @@ const uploadImage = (filepath: string): Promise<UploadApiResponse> => {
   });
 };
 
+//#region ADD NEW PRODUCT
 const AddNewProduct: RequestHandler = async (req, res) => {
   const { name, price, category, description, purchasingDate } = req.body;
   const newProduct = new ProductModel({
@@ -65,7 +66,9 @@ const AddNewProduct: RequestHandler = async (req, res) => {
   await newProduct.save();
   res.status(201).json({ message: "Added new Product" });
 };
+//#endregion
 
+//#region UPDATE PRODUCT
 const UpdateProduct: RequestHandler = async (req, res) => {
   const { name, price, category, description, purchasingDate, thumbnail } =
     req.body;
@@ -137,5 +140,29 @@ const UpdateProduct: RequestHandler = async (req, res) => {
   await product.save();
   res.json({ message: "Product updated" });
 };
+//#endregion
 
-export { AddNewProduct, UpdateProduct };
+//# region DELETE PRODUCT
+const DeleteProduct: RequestHandler = async (req, res) => {
+  const productId = req.params.id;
+  if (!isValidObjectId(productId))
+    return sendErrorRes(res, "Invalid product id", 422);
+
+  const product = await ProductModel.findOneAndDelete({
+    _id: productId,
+    owner: req.user.id,
+  });
+
+  if (!product) return sendErrorRes(res, "Product not found", 404);
+
+  const images = product.images;
+  if (images.length > 0) {
+    const publicIds = images.map((img) => img.id);
+    await cloudApi.delete_resources(publicIds);
+  }
+
+  res.json({ message: "Product deleted" });
+};
+//#endregion
+
+export { AddNewProduct, UpdateProduct, DeleteProduct };
