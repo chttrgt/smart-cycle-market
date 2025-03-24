@@ -4,8 +4,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
 # macOS
 .DS_Store
+*.pem
 
 # Logs
 logs/
@@ -15,6 +21,7 @@ logs/
 # Environment variables
 .env
 .env.*
+.env*.local
 
 # Environment variables Types
 env.d.ts
@@ -23,6 +30,9 @@ env.d.ts
 .expo/
 .expo-shared/
 *.expo
+dist/
+web-build/
+expo-env.d.ts
 android/.gradle/
 android/app/build/
 android/build/
@@ -69,3 +79,17 @@ server/.env
 *.pid
 *.seed
 *.csv
+
+# Native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# typescript
+*.tsbuildinfo
