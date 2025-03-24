@@ -3,6 +3,8 @@ import { RequestHandler } from "express";
 import { isValidObjectId } from "mongoose";
 import cloudUploader, { cloudApi } from "src/cloud";
 import ProductModel from "src/models/product";
+import { UserDocument } from "src/models/user";
+import categories from "src/utils/categories";
 import { sendErrorRes } from "src/utils/helper";
 
 const uploadImage = (filepath: string): Promise<UploadApiResponse> => {
@@ -201,4 +203,121 @@ const DeleteProductImage: RequestHandler = async (req, res) => {
 };
 //#endregion
 
-export { AddNewProduct, UpdateProduct, DeleteProduct, DeleteProductImage };
+//#region GET PRODUCT DETAILS
+const GetProductDetails: RequestHandler = async (req, res) => {
+  const { id } = req.params;
+  if (!isValidObjectId(id)) return sendErrorRes(res, "Invalid product id", 422);
+  const product = await ProductModel.findById(id).populate<{
+    owner: UserDocument;
+  }>("owner");
+  if (!product) return sendErrorRes(res, "Product not found", 404);
+  res.json({
+    product: {
+      id: product._id,
+      name: product.name,
+      description: product.description,
+      thumbnail: product.thumbnail,
+      category: product.category,
+      date: product.purchasingDate,
+      price: product.price,
+      images: product.images?.map((img) => img.url),
+      seller: {
+        id: product.owner._id,
+        name: product.owner.name,
+        avatar: product.owner.avatar?.url,
+      },
+    },
+  });
+};
+//#endregion
+
+//#region GET PRODUCTS By CATEGORY
+const GetProductsByCategory: RequestHandler = async (req, res) => {
+  const { category } = req.params;
+  const { pageNo = "1", limit = "10" } = req.query as {
+    pageNo: string;
+    limit: string;
+  };
+  if (!categories.includes(category)) {
+    return sendErrorRes(res, "Invalid category", 422);
+  }
+
+  const products = await ProductModel.find({ category })
+    .sort({ createdAt: -1 })
+    .skip((parseInt(pageNo) - 1) * parseInt(limit))
+    .limit(parseInt(limit));
+  const listings = products.map((p) => {
+    return {
+      id: p._id,
+      name: p.name,
+      thumbnail: p.thumbnail,
+      category: p.category,
+      price: p.price,
+    };
+  });
+
+  res.json({ products: listings });
+};
+//#endregion
+
+//#region GET LISTINGS
+const GetListings: RequestHandler = async (req, res) => {
+  const { pageNo = "1", limit = "10" } = req.query as {
+    pageNo: string;
+    limit: string;
+  };
+
+  const products = await ProductModel.find({ owner: req.user.id })
+    .sort({ createdAt: -1 })
+    .skip((parseInt(pageNo) - 1) * parseInt(limit))
+    .limit(parseInt(limit));
+
+  const listings = products.map((p) => {
+    return {
+      id: p._id,
+      name: p.name,
+      thumbnail: p.thumbnail,
+      category: p.category,
+      price: p.price,
+      image: p.images?.map((img) => img.url),
+      date: p.purchasingDate,
+      description: p.description,
+      seller: {
+        id: req.user.id,
+        name: req.user.name,
+        avatar: req.user.avatar,
+      },
+    };
+  });
+
+  res.json({ products: listings });
+};
+//#endregion
+
+//#region GET LATEST PRODUCTS
+const GetLatestProducts: RequestHandler = async (req, res) => {
+  const products = await ProductModel.find().sort({ createdAt: -1 }).limit(10);
+  const listings = products.map((p) => {
+    return {
+      id: p._id,
+      name: p.name,
+      thumbnail: p.thumbnail,
+      category: p.category,
+      price: p.price,
+    };
+  });
+
+  res.json({ products: listings });
+};
+//#endregion
+
+export {
+  AddNewProduct,
+  UpdateProduct,
+  DeleteProduct,
+  DeleteProductImage,
+  GetProductDetails,
+  GetProductsByCategory,
+  GetListings,
+  GetLatestProducts,
+};
