@@ -1,12 +1,10 @@
-import ForgetPassword from "@views/ForgetPassword";
-import SignIn from "@views/SignIn";
-import SignUp from "@views/SignUp";
-import { Platform, StatusBar, StyleSheet, Text, View } from "react-native";
+import Navigator from "app/navigator";
+import { Platform, StatusBar, StyleSheet, View } from "react-native";
 
 export default function App() {
   return (
     <View style={styles.container}>
-      <ForgetPassword />
+      <Navigator />
     </View>
   );
 }
